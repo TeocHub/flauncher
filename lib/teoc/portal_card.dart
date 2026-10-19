@@ -1,124 +1,90 @@
 /*
- * Teoc Launcher — tarjeta de acceso rápido (PS4, Teoc-Vice, etc.).
+ * Teoc Launcher — tarjeta de acceso (PS4, Digital Monster, Ajustes…)
+ * y tarjeta resumen de la fila "Hoy".
  */
 
 import 'package:flutter/material.dart';
 
+import 'focus_box.dart';
+import 'palettes.dart';
 import 'teoc_theme.dart';
 
-class TeocPortalCard extends StatefulWidget {
+class TeocPortalCard extends StatelessWidget {
+  final TeocPalette palette;
   final Widget leading;
   final String title;
   final String caption;
   final VoidCallback onPressed;
-  final Color accent;
   final double width;
+  final double height;
+  final bool autofocus;
 
   const TeocPortalCard({
     super.key,
+    required this.palette,
     required this.leading,
     required this.title,
     required this.caption,
     required this.onPressed,
-    this.accent = TeocColors.violet,
-    this.width = 230,
+    this.width = 200,
+    this.height = 76,
+    this.autofocus = false,
   });
 
   @override
-  State<TeocPortalCard> createState() => _TeocPortalCardState();
-}
-
-class _TeocPortalCardState extends State<TeocPortalCard> {
-  bool _focused = false;
-
-  @override
   Widget build(BuildContext context) {
-    return AnimatedScale(
-      scale: _focused ? 1.06 : 1.0,
-      duration: const Duration(milliseconds: 180),
-      curve: Curves.easeOut,
-      child: SizedBox(
-        width: widget.width,
-        height: 84,
-        child: Material(
-          color: (_focused ? TeocColors.surfaceHigh : TeocColors.surface).withOpacity(0.88),
-          borderRadius: BorderRadius.circular(16),
-          clipBehavior: Clip.antiAlias,
-          elevation: _focused ? 12 : 0,
-          shadowColor: Colors.black,
-          child: InkWell(
-            focusColor: Colors.transparent,
-            highlightColor: widget.accent.withOpacity(0.15),
-            splashColor: widget.accent.withOpacity(0.2),
-            onTap: widget.onPressed,
-            onFocusChange: (focused) {
-              setState(() => _focused = focused);
-              if (focused) {
-                Scrollable.ensureVisible(
-                  context,
-                  alignment: 0.5,
-                  curve: Curves.easeInOut,
-                  duration: const Duration(milliseconds: 100),
-                );
-              }
-            },
-            child: AnimatedContainer(
-              duration: const Duration(milliseconds: 180),
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+    return FocusBox(
+      autofocus: autofocus,
+      accent: palette.accent,
+      radius: 16,
+      background: palette.surface,
+      focusedBackground: palette.surfaceHigh,
+      borderColor: palette.border,
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      onPressed: onPressed,
+      builder: (context, focused) => SizedBox(
+        width: width - 28,
+        height: height - 20,
+        child: Row(
+          children: [
+            Container(
+              width: 42,
+              height: 42,
+              alignment: Alignment.center,
               decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(
-                  color: _focused ? TeocColors.gold : Colors.white.withOpacity(0.08),
-                  width: _focused ? 2.5 : 1,
-                ),
+                color: palette.accentSoft,
+                borderRadius: BorderRadius.circular(12),
               ),
-              child: Row(
+              child: leading,
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Container(
-                    width: 48,
-                    height: 48,
-                    alignment: Alignment.center,
-                    decoration: BoxDecoration(
-                      color: widget.accent.withOpacity(0.16),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: widget.leading,
+                  Text(
+                    title,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(color: palette.text, fontSize: 15, fontWeight: FontWeight.w500),
                   ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          widget.title,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                            color: TeocColors.cream,
-                            fontSize: 16,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                        const SizedBox(height: 3),
-                        Text(
-                          widget.caption,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: TextStyle(
-                            color: _focused ? TeocColors.gold : TeocColors.muted,
-                            fontFamily: TeocText.retroFont,
-                            fontSize: 11,
-                            letterSpacing: 0.8,
-                          ),
-                        ),
-                      ],
+                  const SizedBox(height: 3),
+                  Text(
+                    caption,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      color: focused ? palette.accent : palette.muted,
+                      fontFamily: TeocText.retroFont,
+                      fontSize: 10,
+                      letterSpacing: 0.8,
                     ),
                   ),
                 ],
               ),
             ),
-          ),
+          ],
         ),
       ),
     );

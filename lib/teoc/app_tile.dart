@@ -10,7 +10,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import 'focus_box.dart';
-import 'teoc_theme.dart';
+import 'palettes.dart';
 
 class _AppImage {
   final bool isBanner;
@@ -34,7 +34,7 @@ Future<_AppImage> _loadImage(AppsService service, String packageName) {
 
 class TeocAppTile extends StatelessWidget {
   final App app;
-  final Color accent;
+  final TeocPalette palette;
   final double width;
   final bool autofocus;
   final VoidCallback? onPressed;
@@ -44,7 +44,7 @@ class TeocAppTile extends StatelessWidget {
   const TeocAppTile({
     super.key,
     required this.app,
-    required this.accent,
+    required this.palette,
     this.width = 176,
     this.autofocus = false,
     this.onPressed,
@@ -58,10 +58,11 @@ class TeocAppTile extends StatelessWidget {
 
     return FocusBox(
       autofocus: autofocus,
-      accent: accent,
+      accent: palette.accent,
       radius: 14,
       focusScale: 1.08,
-      background: TeocColors.surface,
+      background: palette.surface,
+      borderColor: palette.border,
       onPressed: onPressed ?? () => service.launchApp(app),
       onLongPress: onLongPress,
       builder: (context, focused) => SizedBox(
@@ -103,7 +104,7 @@ class TeocAppTile extends StatelessWidget {
         app.name,
         maxLines: 2,
         overflow: TextOverflow.ellipsis,
-        style: const TextStyle(color: TeocColors.cream, fontSize: 12),
+        style: TextStyle(color: palette.text, fontSize: 12),
       );
 
   Widget _nameOnly() => Center(

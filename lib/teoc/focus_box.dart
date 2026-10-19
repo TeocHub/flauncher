@@ -19,6 +19,7 @@ class FocusBox extends StatefulWidget {
   final Color? focusedBackground;
   final EdgeInsetsGeometry padding;
   final FocusNode? focusNode;
+  final Color? borderColor;
 
   const FocusBox({
     super.key,
@@ -33,6 +34,7 @@ class FocusBox extends StatefulWidget {
     this.focusedBackground,
     this.padding = EdgeInsets.zero,
     this.focusNode,
+    this.borderColor,
   });
 
   @override
@@ -87,7 +89,7 @@ class _FocusBoxState extends State<FocusBox> {
             decoration: BoxDecoration(
               borderRadius: radius,
               border: Border.all(
-                color: _focused ? widget.accent : Colors.white.withOpacity(0.07),
+                color: _focused ? widget.accent : (widget.borderColor ?? Colors.white.withOpacity(0.07)),
                 width: _focused ? 2.5 : 1,
               ),
             ),

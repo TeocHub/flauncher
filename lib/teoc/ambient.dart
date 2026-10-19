@@ -68,7 +68,9 @@ class _AmbientScreenState extends State<AmbientScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final profile = context.watch<ProfileService>().current;
+    final profiles = context.watch<ProfileService>();
+    final profile = profiles.current;
+    final palette = profiles.palette;
     final content = context.watch<RemoteContentService>();
     final reminders = content.remindersFor(profile.id);
     final upcoming = content.upcoming(limit: 1);
@@ -111,7 +113,7 @@ class _AmbientScreenState extends State<AmbientScreen> {
                   gradient: RadialGradient(
                     center: const Alignment(0.6, -0.6),
                     radius: 1.4,
-                    colors: [profile.accentSoft, TeocColors.night],
+                    colors: [palette.accentSoft, TeocColors.night],
                   ),
                 ),
               ),
@@ -150,7 +152,7 @@ class _AmbientScreenState extends State<AmbientScreen> {
                     Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Expanded(child: _reminders(reminders, profile.accent)),
+                        Expanded(child: _reminders(reminders, palette.accent)),
                         Column(
                           crossAxisAlignment: CrossAxisAlignment.end,
                           children: [
@@ -206,7 +208,7 @@ class _AmbientScreenState extends State<AmbientScreen> {
                           frames: _now.hour < 6 ? MonsterSprites.sleep : MonsterSprites.idle,
                           pixelSize: 4,
                           dark: Colors.black,
-                          mid: profile.accent,
+                          mid: palette.accent,
                           accent: Colors.white,
                         ),
                       ],

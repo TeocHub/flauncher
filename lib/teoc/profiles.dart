@@ -5,6 +5,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'palettes.dart';
 import 'teoc_config.dart';
 
 class ProfileService extends ChangeNotifier {
@@ -37,6 +38,26 @@ class ProfileService extends ChangeNotifier {
 
   void requestPicker() {
     _selectedThisSession = false;
+    notifyListeners();
+  }
+
+  // --- Apariencia por perfil ---
+
+  TeocPalette paletteOf(TeocProfile profile) =>
+      TeocPalette.byId(_prefs.getString("teoc_palette_${profile.id}") ?? profile.defaultPalette);
+
+  TeocAvatar avatarOf(TeocProfile profile) =>
+      TeocAvatar.byId(_prefs.getString("teoc_avatar_${profile.id}") ?? profile.defaultAvatar);
+
+  TeocPalette get palette => paletteOf(current);
+
+  Future<void> setPalette(TeocProfile profile, TeocPalette palette) async {
+    await _prefs.setString("teoc_palette_${profile.id}", palette.id);
+    notifyListeners();
+  }
+
+  Future<void> setAvatar(TeocProfile profile, TeocAvatar avatar) async {
+    await _prefs.setString("teoc_avatar_${profile.id}", avatar.id);
     notifyListeners();
   }
 

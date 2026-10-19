@@ -1,161 +1,105 @@
 /*
- * Teoc Launcher — la mascota de Digital Monster, viva en la pantalla de inicio.
- * Duerme de noche, saca paraguas si llueve y celebra la luna llena.
- * Al apretarla cuenta otra cosa.
+ * Teoc Launcher — la mascota de Digital Monster.
+ * Vive discreta junto a la hora: duerme de noche, saca paraguas si llueve
+ * y celebra la luna llena. Solo habla cuando la seleccionas.
  */
 
 import 'package:flutter/material.dart';
 
 import 'focus_box.dart';
+import 'palettes.dart';
 import 'pixel_sprite.dart';
 import 'teoc_config.dart';
 import 'teoc_theme.dart';
 import 'weather.dart';
 
-class MascotPanel extends StatefulWidget {
-  final Color accent;
+class MascotBadge extends StatefulWidget {
+  final TeocPalette palette;
   final WeatherNow? weather;
-  final String tip;
-  final int remindersCount;
-  final String? nextRelease;
+  final List<String> messages;
 
-  const MascotPanel({
+  const MascotBadge({
     super.key,
-    required this.accent,
+    required this.palette,
     required this.weather,
-    required this.tip,
-    required this.remindersCount,
-    this.nextRelease,
+    required this.messages,
   });
 
   @override
-  State<MascotPanel> createState() => _MascotPanelState();
+  State<MascotBadge> createState() => _MascotBadgeState();
 }
 
-class _MascotPanelState extends State<MascotPanel> {
-  int _messageIndex = 0;
+class _MascotBadgeState extends State<MascotBadge> {
+  int _index = 0;
 
   List<List<String>> _frames(DateTime now) {
+    if (now.hour < 6) return MonsterSprites.sleep;
     final weather = widget.weather;
-    final moon = MoonPhase.of(now);
-    if (now.hour >= 0 && now.hour < 6) {
-      return MonsterSprites.sleep;
-    }
-    if (weather != null && weather.isRainy) {
-      return MonsterSprites.rain;
-    }
-    if (moon.name == "Luna llena") {
-      return MonsterSprites.party;
-    }
+    if (weather != null && weather.isRainy) return MonsterSprites.rain;
+    if (MoonPhase.of(now).name == "Luna llena") return MonsterSprites.party;
     return MonsterSprites.idle;
-  }
-
-  List<String> _messages(DateTime now) {
-    final weather = widget.weather;
-    final moon = MoonPhase.of(now);
-    final List<String> messages = [widget.tip];
-
-    if (now.hour < 6) {
-      messages.insert(0, "Zzz... ya es tarde, ¿un capítulo más y a dormir?");
-    }
-    if (weather != null) {
-      if (weather.isRainy) {
-        messages.add("Está lloviendo: día perfecto para mantita y juego.");
-      }
-      else if (weather.temperature >= 28) {
-        messages.add("Hace ${weather.temperature.round()}°: ¡hidrátate!");
-      }
-      else if (weather.temperature <= 8) {
-        messages.add("Hace ${weather.temperature.round()}°: abrígate bien.");
-      }
-      else {
-        messages.add("Afuera: ${weather.description.toLowerCase()}, ${weather.temperature.round()}°.");
-      }
-    }
-    messages.add("Hoy hay ${moon.name.toLowerCase()} ${moon.symbol}");
-    if (widget.remindersCount > 0) {
-      messages.add(widget.remindersCount == 1
-          ? "Tienes 1 recordatorio para hoy."
-          : "Tienes ${widget.remindersCount} recordatorios para hoy.");
-    }
-    final release = widget.nextRelease;
-    if (release != null) {
-      messages.add(release);
-    }
-    return messages;
   }
 
   @override
   Widget build(BuildContext context) {
+    final palette = widget.palette;
     final now = DateTime.now();
-    final messages = _messages(now);
-    final message = messages[_messageIndex % messages.length];
+    final frames = _frames(now);
+    final messages = widget.messages.isEmpty ? ["¡Hola!"] : widget.messages;
+    final message = messages[_index % messages.length];
 
     return FocusBox(
-      accent: widget.accent,
+      accent: palette.accent,
       radius: 18,
-      background: TeocColors.surface.withOpacity(0.72),
-      focusedBackground: TeocColors.surfaceHigh.withOpacity(0.9),
-      padding: const EdgeInsets.all(12),
-      onPressed: () => setState(() => _messageIndex++),
+      focusScale: 1.0,
+      focusedBackground: palette.surfaceHigh,
+      padding: const EdgeInsets.all(6),
+      onPressed: () => setState(() => _index++),
       builder: (context, focused) => Row(
-        crossAxisAlignment: CrossAxisAlignment.center,
+        mainAxisSize: MainAxisSize.min,
         children: [
-          SizedBox(
-            width: 64,
-            height: 64,
-            child: Center(
-              child: AnimatedPixelSprite(
-                key: ValueKey(_frames(now).first.join()),
-                frames: _frames(now),
-                pixelSize: 4.4,
-                dark: TeocColors.night,
-                mid: widget.accent,
-                accent: TeocColors.cream,
-              ),
-            ),
-          ),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  TeocConfig.mascotName.toUpperCase(),
-                  style: TextStyle(
-                    color: widget.accent,
-                    fontFamily: TeocText.retroFont,
-                    fontSize: 10,
-                    fontWeight: FontWeight.bold,
-                    letterSpacing: 2,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                AnimatedSwitcher(
-                  duration: const Duration(milliseconds: 250),
-                  child: Text(
-                    message,
-                    key: ValueKey(message),
-                    maxLines: 3,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(color: TeocColors.cream, fontSize: 12, height: 1.3),
-                  ),
-                ),
-                if (focused)
-                  const Padding(
-                    padding: EdgeInsets.only(top: 4),
-                    child: Text(
-                      "OK: otra cosa",
-                      style: TextStyle(
-                        color: TeocColors.muted,
-                        fontFamily: TeocText.retroFont,
-                        fontSize: 9,
+          AnimatedSize(
+            duration: const Duration(milliseconds: 220),
+            curve: Curves.easeOut,
+            child: focused
+                ? ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 260),
+                    child: Padding(
+                      padding: const EdgeInsets.only(left: 8, right: 10),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.end,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            message,
+                            textAlign: TextAlign.right,
+                            maxLines: 3,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(color: palette.text, fontSize: 12, height: 1.3),
+                          ),
+                          const SizedBox(height: 3),
+                          Text(
+                            "${TeocConfig.mascotName.toUpperCase()} · OK: OTRA COSA",
+                            style: TextStyle(
+                              color: palette.muted,
+                              fontFamily: TeocText.retroFont,
+                              fontSize: 8,
+                              letterSpacing: 1,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
-                  ),
-              ],
-            ),
+                  )
+                : const SizedBox.shrink(),
+          ),
+          AnimatedPixelSprite(
+            key: ValueKey(frames.first.join()),
+            frames: frames,
+            pixelSize: 3,
+            dark: palette.light ? palette.text : const Color(0xFF0D0E12),
+            mid: palette.accent,
+            accent: palette.light ? Colors.white : palette.highlight,
           ),
         ],
       ),

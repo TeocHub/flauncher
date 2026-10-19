@@ -1,12 +1,12 @@
 /*
  * Teoc Launcher — pantalla de inicio.
  *
- *  ┌ avatar · saludo · fecha ───────────────── clima · hora ┐
- *  │ Tus apps                         │ Carta del día        │
- *  │ Accesos (PS4, Digital Monster…)  │ Luna y astrología    │
- *  │ Titulares para ti                │ Mascota              │
- *  │ Calendario gamer · Recordatorios │                      │
- *  └──────────────────────────────────┴──────────────────────┘
+ * Tres zonas, cada una con un motivo:
+ *   1. Arriba: quién eres, el saludo y la hora (y la mascota, discreta).
+ *   2. Centro: lo que vienes a hacer → tus apps y accesos.
+ *   3. Abajo, "Hoy": resúmenes de una línea. El detalle se abre en un panel
+ *      lateral solo cuando lo pides (clima, carta, luna, titulares,
+ *      calendario, recordatorios).
  */
 
 import 'dart:async';
@@ -26,11 +26,13 @@ import 'favorites_editor.dart';
 import 'focus_box.dart';
 import 'mascot.dart';
 import 'news.dart';
+import 'palettes.dart';
 import 'pixel_sprite.dart';
 import 'portal_card.dart';
 import 'profile_picker.dart';
 import 'profiles.dart';
 import 'remote_content.dart';
+import 'side_sheet.dart';
 import 'tarot_view.dart';
 import 'teoc_config.dart';
 import 'teoc_theme.dart';
@@ -46,10 +48,11 @@ class TeocHome extends StatefulWidget {
 class _TeocHomeState extends State<TeocHome> {
   late FLauncherChannel _channel;
   DateTime _now = DateTime.now();
-  WeatherNow? _weather;
+  WeatherReport? _weather;
   List<NewsItem> _news = [];
   bool _newsLoading = true;
   String? _newsProfileId;
+  DateTime? _newsUpdatedAt;
   List<Map<String, dynamic>> _inputs = [];
   Timer? _clockTimer;
   Timer? _refreshTimer;
@@ -81,7 +84,7 @@ class _TeocHomeState extends State<TeocHome> {
   }
 
   Future<void> _loadWeather() async {
-    final weather = await fetchWeather();
+    final weather = await fetchWeatherReport();
     if (mounted && weather != null) {
       setState(() => _weather = weather);
     }
@@ -105,11 +108,12 @@ class _TeocHomeState extends State<TeocHome> {
     }
     _newsProfileId = profile.id;
     setState(() => _newsLoading = true);
-    final news = await fetchNewsForTopics(profile.newsTopics, perTopic: 2);
+    final news = await fetchNewsForTopics(profile.newsTopics, perTopic: 3);
     if (mounted && _newsProfileId == profile.id) {
       setState(() {
-        _news = news.take(8).toList();
+        _news = news.take(12).toList();
         _newsLoading = false;
+        _newsUpdatedAt = DateTime.now();
       });
     }
   }
@@ -127,15 +131,28 @@ class _TeocHomeState extends State<TeocHome> {
     return "Buenas noches";
   }
 
+  String _dateText() {
+    String date;
+    try {
+      date = DateFormat("EEEE d 'de' MMMM", "es").format(_now);
+    }
+    catch (_) {
+      date = DateFormat("EEEE d MMMM").format(_now);
+    }
+    if (date.isEmpty) return date;
+    return date[0].toUpperCase() + date.substring(1);
+  }
+
   @override
   Widget build(BuildContext context) {
     final profiles = context.watch<ProfileService>();
     final profile = profiles.current;
+    final palette = profiles.palette;
+    final avatar = profiles.avatarOf(profile);
     final content = context.watch<RemoteContentService>();
     final appsService = context.watch<AppsService>();
 
     if (_newsProfileId != profile.id) {
-      // Cambió el perfil: cargar sus noticias
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) {
           _loadNews();
@@ -145,66 +162,32 @@ class _TeocHomeState extends State<TeocHome> {
 
     final favorites = _favoriteApps(appsService, profiles);
     final reminders = content.remindersFor(profile.id);
-    final upcoming = content.upcoming();
+    final upcoming = content.upcoming(limit: 8);
 
     return Scaffold(
-      backgroundColor: TeocColors.night,
-      body: Container(
-        decoration: BoxDecoration(
-          gradient: RadialGradient(
-            center: const Alignment(-0.9, -1.1),
-            radius: 1.6,
-            colors: [profile.accentSoft, const Color(0xFF111218), TeocColors.night],
-            stops: const [0, 0.5, 1],
-          ),
-        ),
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(28, 18, 28, 0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _topBar(profiles, profile),
-              const SizedBox(height: 14),
-              Expanded(
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Expanded(
-                      child: SingleChildScrollView(
-                        clipBehavior: Clip.none,
-                        child: Padding(
-                          padding: const EdgeInsets.only(bottom: 48, top: 6),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              _sectionTitle("Apps de ${profile.name}", profile.accent),
-                              _appsRow(favorites, profile),
-                              const SizedBox(height: 20),
-                              _sectionTitle("Accesos", profile.accent),
-                              _portalsRow(profile),
-                              const SizedBox(height: 20),
-                              _sectionTitle("Titulares para ti", profile.accent),
-                              _newsList(profile),
-                              const SizedBox(height: 20),
-                              _sectionTitle("Calendario gamer", profile.accent),
-                              _calendarRow(upcoming, profile),
-                              const SizedBox(height: 20),
-                              _sectionTitle("Recordatorios de hoy", profile.accent),
-                              _remindersList(reminders, profile),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 22),
-                    SizedBox(
-                      width: 290,
-                      child: _sidePanel(profile, reminders.length, upcoming),
-                    ),
-                  ],
-                ),
-              ),
-            ],
+      backgroundColor: palette.background.last,
+      body: AnimatedContainer(
+        duration: const Duration(milliseconds: 500),
+        decoration: BoxDecoration(gradient: palette.gradient),
+        child: SingleChildScrollView(
+          clipBehavior: Clip.none,
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(40, 26, 40, 36),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _topBar(profiles, profile, palette, avatar, reminders, upcoming),
+                const SizedBox(height: 26),
+                _label("Para ti", palette),
+                _appsRow(favorites, profile, palette),
+                const SizedBox(height: 22),
+                _label("Accesos", palette),
+                _portalsRow(palette),
+                const SizedBox(height: 22),
+                _label("Hoy", palette),
+                _todayRow(profile, palette, reminders, upcoming),
+              ],
+            ),
           ),
         ),
       ),
@@ -219,120 +202,164 @@ class _TeocHomeState extends State<TeocHome> {
         .toList();
   }
 
-  // ---------- Barra superior ----------
+  Widget _label(String text, TeocPalette palette) => Padding(
+        padding: const EdgeInsets.only(bottom: 10, left: 2),
+        child: Text(
+          text.toUpperCase(),
+          style: TextStyle(
+            color: palette.muted,
+            fontFamily: TeocText.retroFont,
+            fontSize: 11,
+            fontWeight: FontWeight.bold,
+            letterSpacing: 2.5,
+          ),
+        ),
+      );
 
-  Widget _topBar(ProfileService profiles, TeocProfile profile) {
-    String date;
-    try {
-      date = DateFormat("EEEE d 'de' MMMM", "es").format(_now);
-    }
-    catch (_) {
-      date = DateFormat("EEEE d MMMM").format(_now);
-    }
-    if (date.isNotEmpty) {
-      date = date[0].toUpperCase() + date.substring(1);
-    }
-    final moon = MoonPhase.of(_now);
-    final weather = _weather;
+  // ======================================================================
+  // 1. Arriba
+  // ======================================================================
 
+  Widget _topBar(ProfileService profiles, TeocProfile profile, TeocPalette palette, TeocAvatar avatar,
+      List<Reminder> reminders, List<CalendarEntry> upcoming) {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
         FocusBox(
-          accent: profile.accent,
+          accent: palette.accent,
           radius: 40,
-          background: profile.accentSoft.withOpacity(0.6),
-          padding: const EdgeInsets.all(8),
-          onPressed: profiles.requestPicker,
-          builder: (context, focused) => ProfileAvatar(profile: profile, pixelSize: 3.4),
+          background: palette.surface,
+          borderColor: palette.border,
+          padding: const EdgeInsets.all(9),
+          onPressed: () => _openProfileMenu(profiles, profile, palette),
+          builder: (context, focused) => ProfileAvatar(avatar: avatar, palette: palette, pixelSize: 3.2),
         ),
-        const SizedBox(width: 14),
+        const SizedBox(width: 16),
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
                 "${_greeting()}, ${profile.name}",
-                style: const TextStyle(
-                  color: TeocColors.cream,
+                style: TextStyle(
+                  color: palette.text,
                   fontSize: 28,
                   fontWeight: FontWeight.w300,
-                  shadows: TeocText.softShadow,
+                  shadows: palette.textShadow,
                 ),
               ),
               const SizedBox(height: 2),
               Text(
-                "$date   ·   ${moon.symbol} ${moon.name}",
-                style: TextStyle(
-                  color: profile.accent,
-                  fontFamily: TeocText.retroFont,
-                  fontSize: 11,
-                  letterSpacing: 1.2,
-                ),
+                _dateText(),
+                style: TextStyle(color: palette.muted, fontSize: 13),
               ),
             ],
           ),
         ),
-        if (weather != null) ...[
-          Icon(weather.icon, color: TeocColors.cream, size: 26),
-          const SizedBox(width: 8),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                "${weather.temperature.round()}°",
-                style: const TextStyle(color: TeocColors.cream, fontSize: 22, fontWeight: FontWeight.w300),
-              ),
-              Text(
-                weather.description.toUpperCase(),
-                style: const TextStyle(
-                  color: TeocColors.muted,
-                  fontFamily: TeocText.retroFont,
-                  fontSize: 9,
-                  letterSpacing: 1,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(width: 22),
-        ],
+        MascotBadge(
+          palette: palette,
+          weather: _weather?.now,
+          messages: _mascotMessages(profile, reminders, upcoming),
+        ),
+        const SizedBox(width: 18),
         Text(
           DateFormat("HH:mm").format(_now),
-          style: const TextStyle(
-            color: TeocColors.cream,
-            fontSize: 34,
+          style: TextStyle(
+            color: palette.text,
+            fontSize: 40,
             fontWeight: FontWeight.w200,
             letterSpacing: 1,
+            shadows: palette.textShadow,
           ),
         ),
       ],
     );
   }
 
-  Widget _sectionTitle(String text, Color accent) => Padding(
-        padding: const EdgeInsets.only(bottom: 10, left: 2),
-        child: Row(
-          children: [
-            Container(width: 4, height: 14, color: accent),
-            const SizedBox(width: 8),
-            Text(
-              text.toUpperCase(),
-              style: const TextStyle(
-                color: TeocColors.cream,
-                fontFamily: TeocText.retroFont,
-                fontSize: 12,
-                fontWeight: FontWeight.bold,
-                letterSpacing: 2,
-              ),
-            ),
-          ],
+  List<String> _mascotMessages(TeocProfile profile, List<Reminder> reminders, List<CalendarEntry> upcoming) {
+    final List<String> messages = [DailyTip.ofDay(profile.id, _now)];
+    if (_now.hour < 6) {
+      messages.insert(0, "Zzz… ya es tarde. ¿Un capítulo más y a dormir?");
+    }
+    final weather = _weather;
+    if (weather != null) {
+      final today = weather.today;
+      if (today != null && today.rainChance >= 50) {
+        messages.add("Hoy hay ${today.rainChance}% de probabilidad de lluvia. ¡Paraguas!");
+      }
+      else if (weather.now.temperature >= 28) {
+        messages.add("Hace ${weather.now.temperature.round()}°: ¡hidrátate!");
+      }
+      else if (weather.now.temperature <= 8) {
+        messages.add("Hace ${weather.now.temperature.round()}°: abrígate bien.");
+      }
+    }
+    if (reminders.isNotEmpty) {
+      messages.add("No olvides: ${reminders.first.text.toLowerCase()}.");
+    }
+    if (upcoming.isNotEmpty) {
+      final next = upcoming.first;
+      final days = next.daysLeft(_now);
+      messages.add(days <= 0 ? "¡Hoy sale ${next.title}!" : "Faltan $days días para ${next.title}.");
+    }
+    return messages;
+  }
+
+  void _openProfileMenu(ProfileService profiles, TeocProfile profile, TeocPalette palette) {
+    showSideSheet(
+      context: context,
+      palette: palette,
+      eyebrow: "Perfil",
+      title: profile.name,
+      autofocusClose: false,
+      builder: (sheetContext) => Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          _menuButton(palette, Icons.swap_horiz, "Cambiar de perfil", autofocus: true, onPressed: () {
+            Navigator.of(sheetContext).pop();
+            profiles.requestPicker();
+          }),
+          _menuButton(palette, Icons.palette_outlined, "Personalizar ícono y colores", onPressed: () {
+            Navigator.of(sheetContext).pop();
+            Navigator.of(context).push(MaterialPageRoute(builder: (_) => ProfileEditor(profile: profile)));
+          }),
+          _menuButton(palette, Icons.star_outline, "Elegir mis apps", onPressed: () {
+            Navigator.of(sheetContext).pop();
+            Navigator.of(context).push(MaterialPageRoute(builder: (_) => const FavoritesEditor()));
+          }),
+        ],
+      ),
+    );
+  }
+
+  Widget _menuButton(TeocPalette palette, IconData icon, String text,
+          {required VoidCallback onPressed, bool autofocus = false}) =>
+      Padding(
+        padding: const EdgeInsets.only(bottom: 10),
+        child: FocusBox(
+          autofocus: autofocus,
+          accent: palette.accent,
+          radius: 14,
+          focusScale: 1.02,
+          background: palette.surface,
+          borderColor: palette.border,
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          onPressed: onPressed,
+          builder: (context, focused) => Row(
+            children: [
+              Icon(icon, color: focused ? palette.accent : palette.muted, size: 20),
+              const SizedBox(width: 14),
+              Text(text, style: TextStyle(color: palette.text, fontSize: 15)),
+            ],
+          ),
         ),
       );
 
-  // ---------- Apps ----------
+  // ======================================================================
+  // 2. Centro: apps y accesos
+  // ======================================================================
 
-  Widget _appsRow(List<App> favorites, TeocProfile profile) {
+  Widget _appsRow(List<App> favorites, TeocProfile profile, TeocPalette palette) {
     final List<Widget> tiles = [];
     for (int i = 0; i < favorites.length; i++) {
       tiles.add(Padding(
@@ -340,47 +367,40 @@ class _TeocHomeState extends State<TeocHome> {
         child: TeocAppTile(
           key: ValueKey("home-${profile.id}-${favorites[i].packageName}"),
           app: favorites[i],
-          accent: profile.accent,
+          palette: palette,
+          width: 168,
           autofocus: i == 0,
         ),
       ));
     }
     tiles.add(FocusBox(
       autofocus: favorites.isEmpty,
-      accent: profile.accent,
+      accent: palette.accent,
       radius: 14,
-      background: TeocColors.surface.withOpacity(0.6),
+      background: palette.surface,
+      borderColor: palette.border,
       onPressed: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const FavoritesEditor())),
       builder: (context, focused) => SizedBox(
-        width: 110,
-        height: 99,
+        width: 94,
+        height: 94.5,
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.add, color: focused ? profile.accent : TeocColors.muted, size: 28),
-            const SizedBox(height: 6),
+            Icon(Icons.add, color: focused ? palette.accent : palette.muted, size: 26),
+            const SizedBox(height: 4),
             Text(
               favorites.isEmpty ? "Elegir apps" : "Editar",
-              style: TextStyle(color: focused ? TeocColors.cream : TeocColors.muted, fontSize: 12),
+              style: TextStyle(color: focused ? palette.text : palette.muted, fontSize: 11),
             ),
           ],
         ),
       ),
     ));
 
-    return SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
-      clipBehavior: Clip.none,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 6),
-        child: Row(children: tiles),
-      ),
-    );
+    return _horizontal(tiles);
   }
 
-  // ---------- Accesos ----------
-
-  Widget _portalsRow(TeocProfile profile) {
+  Widget _portalsRow(TeocPalette palette) {
     final List<Widget> cards = [];
 
     for (final input in _inputs) {
@@ -388,221 +408,470 @@ class _TeocHomeState extends State<TeocHome> {
       final label = (input["label"] ?? "Entrada").toString();
       final isPlayStation = _isPlayStation(input);
       cards.add(TeocPortalCard(
-        leading: Icon(
-          isPlayStation ? Icons.sports_esports : Icons.settings_input_hdmi,
-          color: isPlayStation ? profile.accent : TeocColors.cream,
-          size: 26,
-        ),
+        palette: palette,
+        leading: Icon(isPlayStation ? Icons.sports_esports : Icons.settings_input_hdmi, color: palette.accent, size: 22),
         title: isPlayStation ? "PlayStation 4" : label,
         caption: isPlayStation ? label.toUpperCase() : "ENTRADA HDMI",
-        accent: profile.accent,
-        width: 210,
         onPressed: () => _channel.launchTvInput(id),
       ));
     }
 
     cards.add(TeocPortalCard(
+      palette: palette,
       leading: PixelSprite(
         rows: deviceIcon,
-        pixelSize: 3.4,
-        dark: TeocColors.night,
-        mid: TeocColors.cream,
-        accent: profile.accent,
+        pixelSize: 2.8,
+        dark: palette.light ? palette.text : const Color(0xFF0D0E12),
+        mid: palette.light ? Colors.white : palette.highlight,
+        accent: palette.accent,
       ),
       title: TeocConfig.companyName,
       caption: "PROYECTOS",
-      accent: profile.accent,
-      width: 210,
       onPressed: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const DigitalMonsterDevice())),
     ));
 
     cards.add(TeocPortalCard(
-      leading: Icon(Icons.apps, color: TeocColors.cream, size: 26),
+      palette: palette,
+      leading: Icon(Icons.apps, color: palette.accent, size: 22),
       title: "Todas las apps",
       caption: "BIBLIOTECA",
-      accent: profile.accent,
       width: 190,
       onPressed: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const FLauncher())),
     ));
 
     cards.add(TeocPortalCard(
-      leading: Icon(Icons.settings_outlined, color: TeocColors.cream, size: 26),
+      palette: palette,
+      leading: Icon(Icons.settings_outlined, color: palette.accent, size: 22),
       title: "Ajustes",
       caption: "SISTEMA",
-      accent: profile.accent,
-      width: 170,
+      width: 160,
       onPressed: () => _channel.openSettings(),
     ));
 
-    return SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
-      clipBehavior: Clip.none,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 6),
+    return _horizontal(cards);
+  }
+
+  Widget _horizontal(List<Widget> children) => SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        clipBehavior: Clip.none,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 6),
+          child: Row(
+            children: [
+              for (final child in children)
+                if (child is Padding) child else Padding(padding: const EdgeInsets.only(right: 16), child: child),
+            ],
+          ),
+        ),
+      );
+
+  // ======================================================================
+  // 3. Hoy: resúmenes que abren su detalle
+  // ======================================================================
+
+  Widget _todayRow(TeocProfile profile, TeocPalette palette, List<Reminder> reminders, List<CalendarEntry> upcoming) {
+    final card = TarotCard.ofDay(profile.id, _now);
+    final moon = MoonPhase.of(_now);
+    final weather = _weather;
+
+    final List<Widget> cards = [
+      _todayCard(
+        palette: palette,
+        icon: Icon(weather?.now.icon ?? Icons.cloud_outlined, color: palette.accent, size: 22),
+        eyebrow: "Clima",
+        value: weather == null ? "—" : "${weather.now.temperature.round()}° ${weather.now.description}",
+        detail: weather == null ? "Cargando…" : weather.todaySummary,
+        onPressed: () => _openWeather(palette),
+      ),
+      _todayCard(
+        palette: palette,
+        icon: TarotCardFace(card: card, accent: palette.accent, width: 24),
+        eyebrow: "Carta del día",
+        value: card.name,
+        detail: "Ver su mensaje",
+        onPressed: () => _openTarot(profile, palette, card),
+      ),
+      _todayCard(
+        palette: palette,
+        icon: Text(moon.symbol, style: const TextStyle(fontSize: 22)),
+        eyebrow: "Luna",
+        value: moon.name,
+        detail: Astro.signName(profile.zodiacSign) ?? "Energía del día",
+        onPressed: () => _openMoon(profile, palette),
+      ),
+      _todayCard(
+        palette: palette,
+        icon: Icon(Icons.article_outlined, color: palette.accent, size: 22),
+        eyebrow: "Titulares",
+        value: _newsLoading && _news.isEmpty ? "Buscando…" : "${_news.length} para ti",
+        detail: profile.newsTopics.take(2).join(" · "),
+        onPressed: () => _openNews(profile, palette),
+      ),
+      _todayCard(
+        palette: palette,
+        icon: Icon(Icons.sports_esports_outlined, color: palette.accent, size: 22),
+        eyebrow: "Calendario",
+        value: upcoming.isEmpty ? "Sin fechas" : upcoming.first.title,
+        detail: upcoming.isEmpty ? "Agrega en contenido.json" : _daysLeftText(upcoming.first.daysLeft(_now)),
+        onPressed: () => _openCalendar(palette, upcoming),
+      ),
+      _todayCard(
+        palette: palette,
+        icon: Icon(Icons.checklist, color: palette.accent, size: 22),
+        eyebrow: "Recordatorios",
+        value: reminders.isEmpty ? "Nada pendiente" : (reminders.length == 1 ? "1 para hoy" : "${reminders.length} para hoy"),
+        detail: reminders.isEmpty ? "Día libre ✦" : reminders.first.text,
+        onPressed: () => _openReminders(palette, reminders),
+      ),
+    ];
+
+    return _horizontal(cards);
+  }
+
+  Widget _todayCard({
+    required TeocPalette palette,
+    required Widget icon,
+    required String eyebrow,
+    required String value,
+    required String detail,
+    required VoidCallback onPressed,
+  }) {
+    return FocusBox(
+      accent: palette.accent,
+      radius: 16,
+      background: palette.surface,
+      focusedBackground: palette.surfaceHigh,
+      borderColor: palette.border,
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      onPressed: onPressed,
+      builder: (context, focused) => SizedBox(
+        width: 172,
+        height: 62,
         child: Row(
           children: [
-            for (final card in cards) Padding(padding: const EdgeInsets.only(right: 16), child: card),
+            SizedBox(width: 30, child: Center(child: icon)),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(
+                    eyebrow.toUpperCase(),
+                    style: TextStyle(
+                      color: focused ? palette.accent : palette.muted,
+                      fontFamily: TeocText.retroFont,
+                      fontSize: 9,
+                      letterSpacing: 1.5,
+                    ),
+                  ),
+                  const SizedBox(height: 3),
+                  Text(
+                    value,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(color: palette.text, fontSize: 14, fontWeight: FontWeight.w500),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    detail,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(color: palette.muted, fontSize: 11),
+                  ),
+                ],
+              ),
+            ),
           ],
         ),
       ),
     );
   }
 
-  // ---------- Noticias ----------
+  static String _daysLeftText(int days) {
+    if (days <= 0) return "¡Sale hoy!";
+    if (days == 1) return "Sale mañana";
+    return "En $days días";
+  }
 
-  Widget _newsList(TeocProfile profile) {
-    if (_newsLoading && _news.isEmpty) {
-      return _hint("Buscando titulares…");
+  // ---------------- Paneles de detalle ----------------
+
+  TextStyle _body(TeocPalette palette) => TextStyle(color: palette.text, fontSize: 15, height: 1.45);
+
+  TextStyle _small(TeocPalette palette) => TextStyle(color: palette.muted, fontSize: 12, height: 1.4);
+
+  void _openWeather(TeocPalette palette) {
+    final weather = _weather;
+    if (weather == null) {
+      _loadWeather();
+      return;
     }
-    if (_news.isEmpty) {
-      return _hint("Sin titulares por ahora (¿hay internet?)");
-    }
-    return Column(
-      children: [
-        for (final item in _news)
-          Padding(
-            padding: const EdgeInsets.only(bottom: 8),
-            child: FocusBox(
-              accent: profile.accent,
-              radius: 12,
-              focusScale: 1.02,
-              background: TeocColors.surface.withOpacity(0.55),
-              focusedBackground: TeocColors.surfaceHigh.withOpacity(0.9),
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-              onPressed: () => _channel.openWebPage(item.link),
-              builder: (context, focused) => Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                    decoration: BoxDecoration(
-                      color: profile.accent.withOpacity(0.16),
-                      borderRadius: BorderRadius.circular(6),
+    final today = weather.today;
+    showSideSheet(
+      context: context,
+      palette: palette,
+      eyebrow: "Clima · ${TeocConfig.weatherCityName}",
+      title: "${weather.now.temperature.round()}° · ${weather.now.description}",
+      builder: (_) => Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (today != null)
+            Text(
+              "Hoy: máxima ${today.max.round()}°, mínima ${today.min.round()}° y ${today.rainChance}% de probabilidad de lluvia.",
+              style: _body(palette),
+            ),
+          const SizedBox(height: 22),
+          Text("PRÓXIMAS HORAS", style: _eyebrow(palette)),
+          const SizedBox(height: 10),
+          SizedBox(
+            height: 92,
+            child: Row(
+              children: [
+                for (final hour in weather.hours.where((h) => h.time.hour % 2 == 0).take(7))
+                  Expanded(
+                    child: Column(
+                      children: [
+                        Text(DateFormat("HH").format(hour.time) + "h", style: _small(palette)),
+                        const SizedBox(height: 6),
+                        Icon(hour.icon, color: palette.accent, size: 20),
+                        const SizedBox(height: 6),
+                        Text("${hour.temperature.round()}°", style: TextStyle(color: palette.text, fontSize: 15)),
+                        if (hour.rainChance >= 20)
+                          Text("${hour.rainChance}%", style: TextStyle(color: palette.accent, fontSize: 10)),
+                      ],
                     ),
-                    child: Text(
-                      item.topic.toUpperCase(),
+                  ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 18),
+          Text("PRÓXIMOS DÍAS", style: _eyebrow(palette)),
+          const SizedBox(height: 8),
+          for (final day in weather.days.skip(1))
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 7),
+              child: Row(
+                children: [
+                  SizedBox(width: 90, child: Text(_weekday(day.date), style: _body(palette))),
+                  Icon(day.icon, color: palette.accent, size: 20),
+                  const SizedBox(width: 10),
+                  Expanded(child: Text(day.description, style: _small(palette))),
+                  Text("${day.max.round()}° / ${day.min.round()}°", style: _body(palette)),
+                ],
+              ),
+            ),
+          const SizedBox(height: 14),
+          Text("Se actualiza cada 30 minutos.", style: _small(palette)),
+        ],
+      ),
+    );
+  }
+
+  String _weekday(DateTime date) {
+    try {
+      final text = DateFormat("EEEE", "es").format(date);
+      return text[0].toUpperCase() + text.substring(1);
+    }
+    catch (_) {
+      return DateFormat("EEEE").format(date);
+    }
+  }
+
+  TextStyle _eyebrow(TeocPalette palette) => TextStyle(
+        color: palette.accent,
+        fontFamily: TeocText.retroFont,
+        fontSize: 10,
+        fontWeight: FontWeight.bold,
+        letterSpacing: 2,
+      );
+
+  void _openTarot(TeocProfile profile, TeocPalette palette, TarotCard card) {
+    showSideSheet(
+      context: context,
+      palette: palette,
+      eyebrow: "La carta de ${profile.name} para hoy",
+      title: "${card.numeral} · ${card.name}",
+      builder: (_) => Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Center(child: TarotCardFace(card: card, accent: palette.accent, width: 130)),
+          const SizedBox(height: 22),
+          Text(card.meaning, style: _body(palette)),
+          const SizedBox(height: 12),
+          Text("✦ ${card.advice}", style: _body(palette).copyWith(color: palette.accent)),
+          const SizedBox(height: 18),
+          Text("Cambia cada día a medianoche. Cada perfil tiene su propia carta.", style: _small(palette)),
+        ],
+      ),
+    );
+  }
+
+  void _openMoon(TeocProfile profile, TeocPalette palette) {
+    final moon = MoonPhase.of(_now);
+    final nextFull = _nextPhase("Luna llena");
+    final nextNew = _nextPhase("Luna nueva");
+    final sign = Astro.signName(profile.zodiacSign);
+
+    showSideSheet(
+      context: context,
+      palette: palette,
+      eyebrow: sign == null ? "Luna y energía" : "Luna · $sign",
+      title: "${moon.symbol}  ${moon.name}",
+      builder: (_) => Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(Astro.energyOfDay(profile.id, profile.zodiacSign, _now), style: _body(palette)),
+          const SizedBox(height: 22),
+          if (nextFull != null) _keyValue(palette, "🌕  Próxima luna llena", _shortDate(nextFull)),
+          if (nextNew != null) _keyValue(palette, "🌑  Próxima luna nueva", _shortDate(nextNew)),
+          const SizedBox(height: 18),
+          Text(
+            sign == null
+                ? "Agrega tu signo en teoc_config.dart para una energía personalizada."
+                : "La energía cambia cada día; la fase lunar, cada 3 o 4 días.",
+            style: _small(palette),
+          ),
+        ],
+      ),
+    );
+  }
+
+  DateTime? _nextPhase(String name) {
+    final start = DateTime(_now.year, _now.month, _now.day, 12);
+    String previous = MoonPhase.of(start).name;
+    for (int i = 1; i <= 31; i++) {
+      final day = start.add(Duration(days: i));
+      final current = MoonPhase.of(day).name;
+      if (current == name && previous != name) {
+        return day;
+      }
+      previous = current;
+    }
+    return null;
+  }
+
+  String _shortDate(DateTime date) {
+    try {
+      return DateFormat("EEEE d 'de' MMMM", "es").format(date);
+    }
+    catch (_) {
+      return DateFormat("EEEE d MMMM").format(date);
+    }
+  }
+
+  Widget _keyValue(TeocPalette palette, String key, String value) => Padding(
+        padding: const EdgeInsets.symmetric(vertical: 6),
+        child: Row(
+          children: [
+            Expanded(child: Text(key, style: _body(palette))),
+            Text(value, style: _small(palette)),
+          ],
+        ),
+      );
+
+  void _openNews(TeocProfile profile, TeocPalette palette) {
+    final updated = _newsUpdatedAt;
+    showSideSheet(
+      context: context,
+      palette: palette,
+      eyebrow: "Titulares para ${profile.name}",
+      title: profile.newsTopics.join(" · "),
+      autofocusClose: _news.isEmpty,
+      builder: (_) => Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          if (_news.isEmpty)
+            Text(_newsLoading ? "Buscando titulares…" : "Sin titulares por ahora. ¿Hay internet?", style: _body(palette)),
+          for (int i = 0; i < _news.length; i++)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 8),
+              child: FocusBox(
+                autofocus: i == 0,
+                accent: palette.accent,
+                radius: 12,
+                focusScale: 1.0,
+                background: palette.surface,
+                borderColor: palette.border,
+                padding: const EdgeInsets.all(12),
+                onPressed: () => _channel.openWebPage(_news[i].link),
+                builder: (context, focused) => Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      [_news[i].topic.toUpperCase(), _news[i].source, _news[i].age]
+                          .where((part) => part.isNotEmpty)
+                          .join("  ·  "),
                       style: TextStyle(
-                        color: profile.accent,
+                        color: palette.accent,
                         fontFamily: TeocText.retroFont,
                         fontSize: 9,
                         letterSpacing: 1,
                       ),
                     ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Text(
-                      item.title,
-                      maxLines: focused ? 3 : 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(color: TeocColors.cream, fontSize: 14, height: 1.3),
+                    const SizedBox(height: 5),
+                    Text(_news[i].title, style: TextStyle(color: palette.text, fontSize: 14, height: 1.35)),
+                  ],
+                ),
+              ),
+            ),
+          const SizedBox(height: 8),
+          Text(
+            updated == null
+                ? "OK abre la nota completa."
+                : "OK abre la nota completa · Actualizado a las ${DateFormat("HH:mm").format(updated)} · cada 30 min",
+            style: _small(palette),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _openCalendar(TeocPalette palette, List<CalendarEntry> upcoming) {
+    showSideSheet(
+      context: context,
+      palette: palette,
+      eyebrow: "Calendario gamer",
+      title: "Lo que viene",
+      builder: (_) => Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (upcoming.isEmpty) Text("Agrega lanzamientos y eventos en teoc/contenido.json.", style: _body(palette)),
+          for (final entry in upcoming)
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 8),
+              child: Row(
+                children: [
+                  Container(
+                    width: 48,
+                    padding: const EdgeInsets.symmetric(vertical: 6),
+                    decoration: BoxDecoration(color: palette.accentSoft, borderRadius: BorderRadius.circular(10)),
+                    child: Column(
+                      children: [
+                        Text("${entry.date.day}", style: TextStyle(color: palette.text, fontSize: 18, fontWeight: FontWeight.w600)),
+                        Text(_monthShort(entry.date.month), style: _small(palette).copyWith(fontSize: 9)),
+                      ],
                     ),
                   ),
-                  const SizedBox(width: 12),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(entry.title, style: TextStyle(color: palette.text, fontSize: 15, fontWeight: FontWeight.w500)),
+                        if (entry.detail.isNotEmpty) Text(entry.detail, style: _small(palette)),
+                      ],
+                    ),
+                  ),
                   Text(
-                    [item.source, item.age].where((part) => part.isNotEmpty).join(" · "),
-                    style: const TextStyle(color: TeocColors.muted, fontSize: 11),
+                    _daysLeftText(entry.daysLeft(_now)),
+                    style: TextStyle(color: palette.accent, fontSize: 12),
                   ),
                 ],
               ),
             ),
-          ),
-      ],
-    );
-  }
-
-  // ---------- Calendario ----------
-
-  Widget _calendarRow(List<CalendarEntry> entries, TeocProfile profile) {
-    if (entries.isEmpty) {
-      return _hint("Nada en el calendario. Agrega fechas en teoc/contenido.json");
-    }
-    final now = DateTime.now();
-    return SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
-      clipBehavior: Clip.none,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 6),
-        child: Row(
-          children: [
-            for (final entry in entries)
-              Padding(
-                padding: const EdgeInsets.only(right: 14),
-                child: FocusBox(
-                  accent: profile.accent,
-                  radius: 14,
-                  background: TeocColors.surface.withOpacity(0.6),
-                  focusedBackground: TeocColors.surfaceHigh.withOpacity(0.9),
-                  padding: const EdgeInsets.all(10),
-                  builder: (context, focused) => SizedBox(
-                    width: 210,
-                    height: 62,
-                    child: Row(
-                      children: [
-                        Container(
-                          width: 50,
-                          decoration: BoxDecoration(
-                            color: entry.kind == "evento"
-                                ? TeocColors.gold.withOpacity(0.18)
-                                : profile.accent.withOpacity(0.18),
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Text(
-                                "${entry.date.day}",
-                                style: const TextStyle(color: TeocColors.cream, fontSize: 20, fontWeight: FontWeight.w600, height: 1),
-                              ),
-                              Text(
-                                _monthShort(entry.date.month),
-                                style: const TextStyle(
-                                  color: TeocColors.muted,
-                                  fontFamily: TeocText.retroFont,
-                                  fontSize: 9,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        const SizedBox(width: 10),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Text(
-                                entry.title,
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: const TextStyle(color: TeocColors.cream, fontSize: 13, fontWeight: FontWeight.w500),
-                              ),
-                              const SizedBox(height: 2),
-                              Text(
-                                entry.detail,
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: const TextStyle(color: TeocColors.muted, fontSize: 10),
-                              ),
-                              const SizedBox(height: 2),
-                              Text(
-                                _daysLeftLabel(entry.daysLeft(now)),
-                                style: TextStyle(
-                                  color: entry.daysLeft(now) <= 3 ? TeocColors.gold : profile.accent,
-                                  fontFamily: TeocText.retroFont,
-                                  fontSize: 9,
-                                  letterSpacing: 1,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-          ],
-        ),
+          const SizedBox(height: 14),
+          Text("Se edita en teoc/contenido.json y se actualiza cada hora.", style: _small(palette)),
+        ],
       ),
     );
   }
@@ -613,131 +882,34 @@ class _TeocHomeState extends State<TeocHome> {
     return months[index];
   }
 
-  static String _daysLeftLabel(int days) {
-    if (days <= 0) return "¡HOY!";
-    if (days == 1) return "MAÑANA";
-    return "EN $days DÍAS";
-  }
-
-  // ---------- Recordatorios ----------
-
-  Widget _remindersList(List<Reminder> reminders, TeocProfile profile) {
-    if (reminders.isEmpty) {
-      return _hint("Nada pendiente hoy ✦");
-    }
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        for (final reminder in reminders)
-          Padding(
-            padding: const EdgeInsets.only(bottom: 8),
-            child: FocusBox(
-              accent: profile.accent,
-              radius: 12,
-              focusScale: 1.02,
-              background: TeocColors.surface.withOpacity(0.55),
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-              builder: (context, focused) => Row(
+  void _openReminders(TeocPalette palette, List<Reminder> reminders) {
+    showSideSheet(
+      context: context,
+      palette: palette,
+      eyebrow: "Recordatorios",
+      title: "Para hoy",
+      builder: (_) => Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (reminders.isEmpty) Text("Nada pendiente hoy ✦", style: _body(palette)),
+          for (final reminder in reminders)
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 8),
+              child: Row(
                 children: [
                   Icon(
                     reminder.forProfile == "todos" ? Icons.home_outlined : Icons.person_outline,
-                    size: 16,
-                    color: profile.accent,
+                    color: palette.accent,
+                    size: 18,
                   ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: Text(
-                      reminder.text,
-                      style: const TextStyle(color: TeocColors.cream, fontSize: 14),
-                    ),
-                  ),
+                  const SizedBox(width: 12),
+                  Expanded(child: Text(reminder.text, style: _body(palette))),
                 ],
               ),
             ),
-          ),
-      ],
-    );
-  }
-
-  Widget _hint(String text) => Padding(
-        padding: const EdgeInsets.only(left: 4, bottom: 4),
-        child: Text(
-          text,
-          style: const TextStyle(color: TeocColors.muted, fontSize: 13),
-        ),
-      );
-
-  // ---------- Panel lateral ----------
-
-  Widget _sidePanel(TeocProfile profile, int remindersCount, List<CalendarEntry> upcoming) {
-    final card = TarotCard.ofDay(profile.id, _now);
-    final moon = MoonPhase.of(_now);
-    final signName = Astro.signName(profile.zodiacSign);
-
-    String? nextRelease;
-    if (upcoming.isNotEmpty) {
-      final next = upcoming.first;
-      final days = next.daysLeft(_now);
-      nextRelease = days <= 0
-          ? "¡Hoy sale ${next.title}!"
-          : "Faltan $days días para ${next.title}.";
-    }
-
-    return SingleChildScrollView(
-      clipBehavior: Clip.none,
-      child: Padding(
-        padding: const EdgeInsets.only(top: 6, bottom: 24),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            TarotPanel(card: card, accent: profile.accent, ownerName: profile.name),
-            const SizedBox(height: 12),
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: TeocColors.surface.withOpacity(0.72),
-                borderRadius: BorderRadius.circular(18),
-                border: Border.all(color: Colors.white.withOpacity(0.07)),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Text(moon.symbol, style: const TextStyle(fontSize: 20)),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Text(
-                          signName == null ? moon.name.toUpperCase() : "${moon.name} · $signName".toUpperCase(),
-                          style: TextStyle(
-                            color: profile.accent,
-                            fontFamily: TeocText.retroFont,
-                            fontSize: 10,
-                            fontWeight: FontWeight.bold,
-                            letterSpacing: 1.5,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 6),
-                  Text(
-                    Astro.energyOfDay(profile.id, profile.zodiacSign, _now),
-                    style: const TextStyle(color: TeocColors.cream, fontSize: 12, height: 1.35),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 12),
-            MascotPanel(
-              accent: profile.accent,
-              weather: _weather,
-              tip: DailyTip.ofDay(profile.id, _now),
-              remindersCount: remindersCount,
-              nextRelease: nextRelease,
-            ),
-          ],
-        ),
+          const SizedBox(height: 14),
+          Text("Se editan en teoc/contenido.json y se actualizan cada hora.", style: _small(palette)),
+        ],
       ),
     );
   }

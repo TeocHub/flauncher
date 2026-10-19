@@ -20,9 +20,10 @@ class FavoritesEditor extends StatelessWidget {
         .where((app) => !app.hidden && app.packageName != "cl.teoc.launcher")
         .toList();
     final profile = profiles.current;
+    final palette = profiles.palette;
 
     return Scaffold(
-      backgroundColor: TeocColors.night,
+      backgroundColor: palette.background.last,
       body: Padding(
         padding: const EdgeInsets.fromLTRB(40, 28, 40, 0),
         child: Column(
@@ -30,13 +31,13 @@ class FavoritesEditor extends StatelessWidget {
           children: [
             Text(
               "Apps de ${profile.name}",
-              style: const TextStyle(color: TeocColors.cream, fontSize: 28, fontWeight: FontWeight.w300),
+              style: TextStyle(color: palette.text, fontSize: 28, fontWeight: FontWeight.w300),
             ),
             const SizedBox(height: 4),
             Text(
               "OK: agregar o quitar de tu inicio   ·   ATRÁS: volver",
               style: TextStyle(
-                color: profile.accent,
+                color: palette.accent,
                 fontFamily: TeocText.retroFont,
                 fontSize: 11,
                 letterSpacing: 1,
@@ -56,15 +57,15 @@ class FavoritesEditor extends StatelessWidget {
                         TeocAppTile(
                           key: ValueKey("fav-${apps[i].packageName}"),
                           app: apps[i],
-                          accent: profile.accent,
+                          palette: palette,
                           width: 160,
                           autofocus: i == 0,
                           onPressed: () => profiles.toggleFavorite(apps[i].packageName),
                           badge: profiles.isFavorite(apps[i].packageName)
                               ? Container(
                                   padding: const EdgeInsets.all(3),
-                                  decoration: BoxDecoration(color: profile.accent, shape: BoxShape.circle),
-                                  child: const Icon(Icons.star, size: 14, color: TeocColors.night),
+                                  decoration: BoxDecoration(color: palette.accent, shape: BoxShape.circle),
+                                  child: Icon(Icons.star, size: 14, color: palette.light ? Colors.white : TeocColors.night),
                                 )
                               : null,
                         ),

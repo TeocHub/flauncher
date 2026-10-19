@@ -9,8 +9,6 @@
  * Así los puedes editar desde el celular sin recompilar.
  */
 
-import 'package:flutter/material.dart';
-
 class TeocProject {
   final String name;
   final String description;
@@ -22,10 +20,11 @@ class TeocProject {
 class TeocProfile {
   final String id;
   final String name;
-  final Color accent;
-  final Color accentSoft;
-  /// Sprite pixel del avatar ('#' oscuro, 'o' medio, '+' acento, '.' vacío).
-  final List<String> avatar;
+  /// Paleta e ícono iniciales (se cambian desde la tele en "Personalizar").
+  /// Paletas: noche, bosque, oceano, brasa, algodon, menta, lavanda, durazno.
+  /// Íconos: orbe, monstruo, gato, fantasma, hongo, estrella, corazon, slime.
+  final String defaultPalette;
+  final String defaultAvatar;
   /// Signo zodiacal en minúsculas y sin tilde (ej: "escorpio"), o null.
   final String? zodiacSign;
   /// Temas de noticias (búsquedas en Google Noticias).
@@ -36,9 +35,8 @@ class TeocProfile {
   const TeocProfile({
     required this.id,
     required this.name,
-    required this.accent,
-    required this.accentSoft,
-    required this.avatar,
+    required this.defaultPalette,
+    required this.defaultAvatar,
     required this.newsTopics,
     required this.defaultFavorites,
     this.zodiacSign,
@@ -71,22 +69,8 @@ class TeocConfig {
     TeocProfile(
       id: "teoc",
       name: "Teoc",
-      accent: Color(0xFFB48CF2),
-      accentSoft: Color(0xFF3A2A5E),
-      avatar: [
-        "....++++....",
-        "..++....++..",
-        ".+...oo...+.",
-        ".+..oooo..+.",
-        "+..oooooo..+",
-        "+..o#oo#o..+",
-        "+..oooooo..+",
-        "+...o##o...+",
-        ".+..oooo..+.",
-        ".+...oo...+.",
-        "..++....++..",
-        "....++++....",
-      ],
+      defaultPalette: "noche",
+      defaultAvatar: "orbe",
       zodiacSign: null,
       newsTopics: [
         "inteligencia artificial",
@@ -104,22 +88,8 @@ class TeocConfig {
     TeocProfile(
       id: "skynook",
       name: "Skynook",
-      accent: Color(0xFF6FD3E8),
-      accentSoft: Color(0xFF173B47),
-      avatar: [
-        "....+..+....",
-        "...++..++...",
-        "..+oooooo+..",
-        ".+oooooooo+.",
-        ".+o##oo##o+.",
-        ".+o#+oo#+o+.",
-        ".+oooooooo+.",
-        "..+oo##oo+..",
-        "...+oooo+...",
-        "..+o+..+o+..",
-        ".+o+....+o+.",
-        ".++......++.",
-      ],
+      defaultPalette: "algodon",
+      defaultAvatar: "monstruo",
       zodiacSign: null,
       newsTopics: [
         "videojuegos",

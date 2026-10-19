@@ -3,8 +3,8 @@
 Fork personal de [FLauncher](https://github.com/osrosal/flauncher) para la tele de Teoc (Google TV, 32 bits).
 
 **Qué trae:**
-- Perfiles **Teoc** y **Skynook** con pantalla "¿Quién está viendo?", color y apps propias.
-- Inicio nuevo: saludo, clima, apps grandes, accesos (PS4 por HDMI-CEC, proyectos, biblioteca, ajustes).
+- Perfiles **Teoc** y **Skynook** con pantalla "¿Quién está viendo?"; cada uno elige su ícono pixel, sus colores (oscuros o pastel) y sus apps.
+- Inicio limpio en tres zonas: saludo y hora, apps y accesos, y una fila "Hoy" con resúmenes que abren su detalle en un panel lateral (clima con pronóstico, carta, luna, titulares, calendario, recordatorios).
 - Titulares de Google Noticias según los temas de cada perfil (solo el titular; OK abre la nota).
 - Carta de tarot del día, consejo del día, luna y energía astral por perfil.
 - Calendario gamer, eventos y recordatorios editables desde `teoc/contenido.json` (la tele lo descarga sola cada hora).
