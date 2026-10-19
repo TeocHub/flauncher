@@ -29,6 +29,26 @@ class FLauncherGradient {
 }
 
 mixin FLauncherGradients {
+  static final teocNight = FLauncherGradient(
+    "5f0c7a3e-7e1b-4c55-9d4f-7e3c2b9a1d10",
+    "Noche de Teoc",
+    const RadialGradient(
+      center: Alignment(-0.7, -0.9),
+      radius: 1.6,
+      colors: [Color(0xFF2A2140), Color(0xFF15161D), Color(0xFF0B0C10)],
+      stops: [0, 0.55, 1],
+    ),
+  );
+  static final teocForest = FLauncherGradient(
+    "a3d9e2c4-1f6b-4a87-8c3e-5b2d7f9e0c21",
+    "Bosque de Teoc",
+    const RadialGradient(
+      center: Alignment(0.8, -1),
+      radius: 1.7,
+      colors: [Color(0xFF26331F), Color(0xFF14181A), Color(0xFF0B0C10)],
+      stops: [0, 0.55, 1],
+    ),
+  );
   static final greatWhale = FLauncherGradient(
     "8bbdc190-ff6c-496e-8033-3c217e78da36",
     "Great Whale",
@@ -85,6 +105,8 @@ mixin FLauncherGradients {
   );
 
   static List<FLauncherGradient> get all => [
+        teocNight,
+        teocForest,
         greatWhale,
         viciousStance,
         teenNotebook,

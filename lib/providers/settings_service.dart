@@ -47,7 +47,7 @@ class SettingsService extends ChangeNotifier {
 
   bool get showCategoryTitles => _sharedPreferences.getBool(_showCategoryTitles) ?? true;
 
-  bool get showDateInStatusBar => _sharedPreferences.getBool(_showDateInStatusBar) ?? true;
+  bool get showDateInStatusBar => _sharedPreferences.getBool(_showDateInStatusBar) ?? false;
 
   bool get showTimeInStatusBar => _sharedPreferences.getBool(_showTimeInStatusBar) ?? true;
 

@@ -35,16 +35,17 @@ class FLauncherApp extends StatelessWidget
     BackIntent()
   ]);
 
-  static const MaterialColor _swatch = MaterialColor(0xFF011526, <int, Color>{
-    50: Color(0xFF36A0FA),
-    100: Color(0xFF067BDE),
-    200: Color(0xFF045CA7),
-    300: Color(0xFF033662),
-    400: Color(0xFF022544),
-    500: Color(0xFF011526),
-    600: Color(0xFF000508),
-    700: Color(0xFF000000),
-    800: Color(0xFF000000),
+  // Paleta Teoc: noche violeta
+  static const MaterialColor _swatch = MaterialColor(0xFF2A2140, <int, Color>{
+    50: Color(0xFFD8B46A),
+    100: Color(0xFFB9A0E3),
+    200: Color(0xFF8C6BC8),
+    300: Color(0xFF20212B),
+    400: Color(0xFF17181F),
+    500: Color(0xFF2A2140),
+    600: Color(0xFF15161D),
+    700: Color(0xFF0E0F13),
+    800: Color(0xFF0B0C10),
     900: Color(0xFF000000),
   });
 
@@ -74,7 +75,7 @@ class FLauncherApp extends StatelessWidget
         GlobalWidgetsLocalizations.delegate
       ],
       supportedLocales: AppLocalizations.supportedLocales,
-      title: 'FLauncher',
+      title: 'Teoc',
       theme: ThemeData(
         useMaterial3: true,
         brightness: Brightness.dark,

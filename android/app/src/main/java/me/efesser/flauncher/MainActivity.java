@@ -25,6 +25,9 @@ import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.drawable.BitmapDrawable;
 import android.graphics.drawable.Drawable;
+import android.media.tv.TvContract;
+import android.media.tv.TvInputInfo;
+import android.media.tv.TvInputManager;
 import android.net.ConnectivityManager;
 import android.net.Uri;
 import android.os.Build;
@@ -81,6 +84,9 @@ public class MainActivity extends FlutterActivity
                 case "checkForGetContentAvailability" -> result.success(checkForGetContentAvailability());
                 case "startAmbientMode" -> result.success(startAmbientMode());
                 case "getActiveNetworkInformation" -> result.success(getActiveNetworkInformation());
+                case "getTvInputs" -> result.success(getTvInputs());
+                case "launchTvInput" -> result.success(launchTvInput(call.arguments()));
+                case "openWebPage" -> result.success(openWebPage(call.arguments()));
                 default -> throw new IllegalArgumentException();
             }
         });
@@ -361,6 +367,58 @@ public class MainActivity extends FlutterActivity
             //noinspection deprecation
             return NetworkUtils.getNetworkInformation(this, connectivityManager.getActiveNetworkInfo());
         }
+    }
+
+    // --- Teoc: entradas HDMI y proyectos web ---
+
+    private List<Map<String, Serializable>> getTvInputs() {
+        List<Map<String, Serializable>> inputs = new ArrayList<>();
+
+        try {
+            TvInputManager manager = (TvInputManager) getSystemService(Context.TV_INPUT_SERVICE);
+            if (manager == null) {
+                return inputs;
+            }
+
+            for (TvInputInfo info : manager.getTvInputList()) {
+                if (!info.isPassthroughInput() || info.isHidden(this)) {
+                    continue;
+                }
+
+                String label = null;
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+                    CharSequence customLabel = info.loadCustomLabel(this);
+                    if (customLabel != null && customLabel.length() > 0) {
+                        label = customLabel.toString();
+                    }
+                }
+                if (label == null) {
+                    CharSequence defaultLabel = info.loadLabel(this);
+                    label = defaultLabel != null ? defaultLabel.toString() : info.getId();
+                }
+
+                HashMap<String, Serializable> map = new HashMap<>();
+                map.put("id", info.getId());
+                map.put("label", label);
+                map.put("type", info.getType());
+                inputs.add(map);
+            }
+        }
+        catch (Exception ignored) { }
+
+        return inputs;
+    }
+
+    private boolean launchTvInput(String inputId) {
+        Intent intent = new Intent(Intent.ACTION_VIEW, TvContract.buildChannelUriForPassthroughInput(inputId));
+        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+        return tryStartActivity(intent);
+    }
+
+    private boolean openWebPage(String url) {
+        Intent intent = new Intent(this, WebPageActivity.class);
+        intent.putExtra(WebPageActivity.EXTRA_URL, url);
+        return tryStartActivity(intent);
     }
 
     private boolean tryStartActivity(Intent intent)

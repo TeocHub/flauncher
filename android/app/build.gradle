@@ -46,7 +46,7 @@ secretProperties.setProperty("signing_key_alias", "${System.getenv('FLAUNCHER_SI
 
 android {
     defaultConfig {
-        applicationId "me.efesser.flauncher"
+        applicationId "cl.teoc.launcher"
         compileSdk 35
         minSdk 21
         targetSdk 35
@@ -57,10 +57,11 @@ android {
     signingConfigs {
         debug {}
         release {
-            storeFile file("upload-keystore.jks")
-            storePassword "${secretProperties['signing_keystore_password']}"
-            keyAlias "${secretProperties['signing_key_alias']}"
-            keyPassword "${secretProperties['signing_key_password']}"
+            // Llave propia del launcher de Teoc (uso personal)
+            storeFile file("teoc.jks")
+            storePassword "teoclauncher"
+            keyAlias "teoc"
+            keyPassword "teoclauncher"
         }
     }
 

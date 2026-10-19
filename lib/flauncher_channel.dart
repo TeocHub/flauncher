@@ -65,6 +65,22 @@ class FLauncherChannel {
 
   Future<void> startAmbientMode() async => await _methodChannel.invokeMethod("startAmbientMode");
 
+  // --- Teoc ---
+
+  Future<List<Map<String, dynamic>>> getTvInputs() async {
+    List<Map<dynamic, dynamic>>? inputs = await _methodChannel.invokeListMethod<Map<dynamic, dynamic>>("getTvInputs");
+    if (inputs == null) {
+      return [];
+    }
+    return inputs.map((input) => input.cast<String, dynamic>()).toList();
+  }
+
+  Future<bool> launchTvInput(String inputId) async =>
+      await _methodChannel.invokeMethod<bool>("launchTvInput", inputId) ?? false;
+
+  Future<bool> openWebPage(String url) async =>
+      await _methodChannel.invokeMethod<bool>("openWebPage", url) ?? false;
+
   void addAppsChangedListener(void Function(Map<String, dynamic>) listener) =>
       _appsEventChannel.receiveBroadcastStream().listen((event) {
         Map<dynamic, dynamic> eventMap = event;

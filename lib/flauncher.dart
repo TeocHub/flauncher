@@ -25,6 +25,7 @@ import 'package:flauncher/widgets/apps_grid.dart';
 import 'package:flauncher/widgets/category_row.dart';
 import 'package:flauncher/widgets/launcher_alternative_view.dart';
 import 'package:flauncher/widgets/focus_aware_app_bar.dart';
+import 'package:flauncher/teoc/teoc_header.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
@@ -58,7 +59,14 @@ class FLauncher extends StatelessWidget {
               child: Consumer<AppsService>(
                 builder: (context, appsService, _) {
                   if (appsService.initialized) {
-                    return SingleChildScrollView(child: _sections(appsService.launcherSections));
+                    return SingleChildScrollView(
+                      child: Column(
+                        children: [
+                          const TeocHeader(),
+                          _sections(appsService.launcherSections)
+                        ]
+                      )
+                    );
                   }
                   else {
                     return _emptyState(context);

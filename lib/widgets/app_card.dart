@@ -98,7 +98,7 @@ class _AppCardState extends State<AppCard> with SingleTickerProviderStateMixin {
             transformAlignment: Alignment.center,
             transform: _scaleTransform(context),
             child: Material(
-              borderRadius: BorderRadius.circular(8),
+              borderRadius: BorderRadius.circular(14),
               clipBehavior: Clip.antiAlias,
               elevation: shouldHighlight ? 16 : 0,
               shadowColor: Colors.black,
@@ -146,9 +146,9 @@ class _AppCardState extends State<AppCard> with SingleTickerProviderStateMixin {
                           builder: (context, child) => IgnorePointer(
                             child: Container(
                               decoration: BoxDecoration(
-                                borderRadius: BorderRadius.circular(8),
+                                borderRadius: BorderRadius.circular(14),
                                 border: Border.all(
-                                  color: Colors.white.withAlpha(_animation.value.round()),
+                                  color: const Color(0xFFD8B46A).withAlpha(_animation.value.round()),
                                   width: 3
                                 ),
                               ),

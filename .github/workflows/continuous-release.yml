@@ -1,4 +1,4 @@
-name: Continuous build
+name: Teoc Launcher build
 
 on:
   push:
@@ -6,16 +6,20 @@ on:
       - 'master'
     paths-ignore:
       - '**/*.md'
+  workflow_dispatch:
+
+permissions:
+  contents: write
 
 jobs:
   release-apk:
-    name: Release APK
+    name: Build APK
     env:
       OUTPUT_DIR: 'build/app/outputs/flutter-apk'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       - name: Install Flutter
         uses: subosito/flutter-action@v2
         with:
@@ -26,41 +30,28 @@ jobs:
         with:
           distribution: 'temurin'
           java-version: '17'
-      - name: Verify environment
-        run: |
-          java --version
-          flutter doctor -v
-      - name: Set version variables
-        id: set_version_variables
-        run: |
-          cat version_numbers >> $GITHUB_OUTPUT
-          export $(cat version_numbers | xargs)
-          echo "FULL_VERSION_NUMBER=$(date '+%Y.%m').$(printf '%03d' $MONTH_VERSION_NUMBER)" >> $GITHUB_OUTPUT
+      - name: Get dependencies
+        run: flutter pub get
+      - name: Analyze (errors only)
+        run: flutter analyze --no-fatal-infos --no-fatal-warnings lib
       - name: Build
-        env:
-          FLAUNCHER_KEYSTORE_PASSWORD: ${{ secrets.FLAUNCHER_KEYSTORE_PASSWORD }}
-          FLAUNCHER_SIGNING_KEY_ALIAS: ${{ secrets.FLAUNCHER_SIGNING_KEY_ALIAS }}
-          FLAUNCHER_SIGNING_KEY_PASSWORD: ${{ secrets.FLAUNCHER_SIGNING_KEY_PASSWORD }}
-          KEYSTORE_FILE_BASE64: ${{ secrets.KEYSTORE_FILE_BASE64 }}
-          BUILD_NUMBER: ${{ steps.set_version_variables.outputs.BUILD_NUMBER }}
-          FULL_VERSION_NUMBER: ${{ steps.set_version_variables.outputs.FULL_VERSION_NUMBER }}
         run: |
-          sudo apt install rename -y
-          echo -n "$KEYSTORE_FILE_BASE64" | base64 -d > android/app/upload-keystore.jks
-          flutter --no-color build apk --release --build-number $BUILD_NUMBER --build-name=$FULL_VERSION_NUMBER
-          file-rename 's/app-(.*)-release.apk/flauncher-$1-release.apk/' $OUTPUT_DIR/*.apk
-          mv $OUTPUT_DIR/app-release.apk $OUTPUT_DIR/flauncher-universal-release.apk
+          flutter --no-color build apk --release --build-number ${{ github.run_number }} --build-name=1.0.${{ github.run_number }}
+          cd $OUTPUT_DIR
+          for f in app-*-release.apk; do mv "$f" "teoc-launcher-${f#app-}"; done
+          mv app-release.apk teoc-launcher-universal-release.apk
+          ls -la
       - name: Upload APKs as artifact
         uses: actions/upload-artifact@v4
         with:
-          name: flauncher-release
-          path: ${{ env.OUTPUT_DIR }}/flauncher-*.apk
+          name: teoc-launcher
+          path: ${{ env.OUTPUT_DIR }}/teoc-launcher-*.apk
           retention-days: 30
       - name: Create release
         env:
-          GH_TOKEN: ${{ secrets.CI_ACCESS_TOKEN }}
-          MONTH_VERSION_NUMBER: ${{ steps.set_version_variables.outputs.MONTH_VERSION_NUMBER }}
-          FULL_VERSION_NUMBER: ${{ steps.set_version_variables.outputs.FULL_VERSION_NUMBER }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          export TAG_NAME=v$FULL_VERSION_NUMBER
-          gh release create $TAG_NAME --latest --title "Release #$MONTH_VERSION_NUMBER $(date '+%B %Y') ($FULL_VERSION_NUMBER)" --notes "" $OUTPUT_DIR/flauncher-*.apk
+          gh release create "teoc-${{ github.run_number }}" --latest \
+            --title "Teoc Launcher #${{ github.run_number }}" \
+            --notes "Para la tele Sharp (32 bits) descarga el APK que dice armeabi-v7a." \
+            ${{ env.OUTPUT_DIR }}/teoc-launcher-*.apk
