@@ -2,14 +2,20 @@
 
 Fork personal de [FLauncher](https://github.com/osrosal/flauncher) para la tele de Teoc (Google TV, 32 bits).
 
-**Qué agrega:**
-- Tema oscuro minimalista con toques místicos (violeta y oro), naturales (musgo) y retro (monoespaciada).
-- Saludo según la hora, fecha, fase lunar y clima (Open-Meteo, sin API key).
-- Accesos directos a las entradas HDMI (detecta la PlayStation por su nombre CEC).
-- **Teoc-Vice**: menú de proyectos al estilo Digivice, con su mascota pixel *Velamon*.
-- Tarjetas de apps más grandes por defecto.
+**Qué trae:**
+- Perfiles **Teoc** y **Skynook** con pantalla "¿Quién está viendo?", color y apps propias.
+- Inicio nuevo: saludo, clima, apps grandes, accesos (PS4 por HDMI-CEC, proyectos, biblioteca, ajustes).
+- Titulares de Google Noticias según los temas de cada perfil (solo el titular; OK abre la nota).
+- Carta de tarot del día, consejo del día, luna y energía astral por perfil.
+- Calendario gamer, eventos y recordatorios editables desde `teoc/contenido.json` (la tele lo descarga sola cada hora).
+- La mascota de **Digital Monster** vive en el inicio: duerme de noche, saca paraguas si llueve y celebra la luna llena.
+- Modo ambiente tras 5 minutos sin usar el control.
+- La biblioteca completa de FLauncher sigue disponible en "Todas las apps".
 
-**Personalizar:** edita `lib/teoc/teoc_config.dart` (nombre, ciudad del clima, lista de proyectos).
+**Personalizar:**
+- `lib/teoc/teoc_config.dart`: perfiles, signos, temas de noticias, ciudad, mascota, proyectos (requiere recompilar).
+- `teoc/contenido.json`: recordatorios, lanzamientos y eventos (no requiere recompilar).
+
 Cada push a `master` compila el APK en GitHub Actions y lo publica en *Releases*.
 Para la tele, instala el APK `armeabi-v7a`.
 

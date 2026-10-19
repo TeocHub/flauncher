@@ -1,5 +1,5 @@
 /*
- * Teoc Launcher — Teoc-Vice: menú de proyectos al estilo de un Digivice.
+ * Teoc Launcher — dispositivo Digital Monster: menú de proyectos estilo pantalla LCD.
  */
 
 import 'package:flauncher/flauncher_channel.dart';
@@ -10,8 +10,8 @@ import 'pixel_sprite.dart';
 import 'teoc_config.dart';
 import 'teoc_theme.dart';
 
-class TeocViceScreen extends StatelessWidget {
-  const TeocViceScreen({super.key});
+class DigitalMonsterDevice extends StatelessWidget {
+  const DigitalMonsterDevice({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -57,9 +57,9 @@ class _DeviceShell extends StatelessWidget {
         children: [
           Row(
             children: [
-              const Text(
-                "TEOC-VICE",
-                style: TextStyle(
+              Text(
+                TeocConfig.companyName.toUpperCase(),
+                style: const TextStyle(
                   color: TeocColors.gold,
                   fontFamily: TeocText.retroFont,
                   fontWeight: FontWeight.bold,
@@ -147,13 +147,13 @@ class _LcdScreen extends StatelessWidget {
                       children: [
                         const SizedBox(height: 18),
                         const AnimatedPixelSprite(
-                          frames: velamonFrames,
-                          pixelSize: 7,
+                          frames: MonsterSprites.idle,
+                          pixelSize: 6,
                           dark: TeocColors.lcdDark,
                           mid: TeocColors.lcdMid,
                         ),
                         const SizedBox(height: 14),
-                        _lcdText("VELAMON", size: 14, bold: true),
+                        _lcdText(TeocConfig.mascotName.toUpperCase(), size: 14, bold: true),
                         const SizedBox(height: 2),
                         _lcdText("LV.${projects.length}  HP ████", size: 10),
                       ],

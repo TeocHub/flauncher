@@ -18,6 +18,8 @@ class WeatherNow {
 
   const WeatherNow(this.temperature, this.code, this.isDay);
 
+  bool get isRainy => (code >= 51 && code <= 67) || (code >= 80 && code <= 82) || code >= 95;
+
   String get description {
     if (code == 0) return isDay ? "Despejado" : "Noche clara";
     if (code <= 2) return "Algo nublado";

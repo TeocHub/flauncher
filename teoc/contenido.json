@@ -1,0 +1,19 @@
+{
+  "_ayuda": "Edita este archivo desde GitHub (incluso en el celular). La tele lo revisa cada hora. 'para' puede ser 'todos', 'teoc' o 'skynook'. 'dias' es opcional (lunes...domingo); sin 'dias' aparece todos los días. 'fecha' (AAAA-MM-DD) lo muestra solo ese día.",
+  "recordatorios": [
+    { "texto": "Sacar la basura", "para": "todos", "dias": ["martes", "jueves"] },
+    { "texto": "Práctica en el colegio: preparar materiales", "para": "teoc", "dias": ["domingo"] },
+    { "texto": "Turno de fin de semana: ¡ánimo!", "para": "skynook", "dias": ["sabado", "domingo"] }
+  ],
+  "lanzamientos": [
+    { "titulo": "Call of Duty: Modern Warfare 4", "fecha": "2026-10-23", "plataformas": "PS5 · Xbox · Switch 2 · PC" },
+    { "titulo": "Phantom Blade Zero", "fecha": "2026-10-29", "plataformas": "PS5 · PC" },
+    { "titulo": "Steins;Gate Re:Boot", "fecha": "2026-10-29", "plataformas": "PS4 · PS5 · Switch · Switch 2" },
+    { "titulo": "Zelda: Ocarina of Time", "fecha": "2026-11-05", "plataformas": "Switch 2" },
+    { "titulo": "Crymelight", "fecha": "2026-11-05", "plataformas": "PS5 · Switch 2 · PC" },
+    { "titulo": "Grand Theft Auto VI", "fecha": "2026-11-19", "plataformas": "PS5 · Xbox Series" }
+  ],
+  "eventos": [
+    { "titulo": "The Game Awards", "fecha": "2026-12-10", "detalle": "Anuncios y premios del año (fecha por confirmar)" }
+  ]
+}

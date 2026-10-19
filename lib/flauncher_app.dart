@@ -26,7 +26,7 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:provider/provider.dart';
 
-import 'flauncher.dart';
+import 'teoc/teoc_root.dart';
 
 class FLauncherApp extends StatelessWidget
 {
@@ -100,7 +100,7 @@ class FLauncherApp extends StatelessWidget
       home: Builder(
         builder: (context) => PopScope(
           canPop: false,
-          child: FLauncher(),
+          child: const TeocRoot(),
           onPopInvoked: (didPop) {
             LauncherState launcherState = context.read<LauncherState>();
             launcherState.handleBackNavigation(context);

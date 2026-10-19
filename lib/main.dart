@@ -25,6 +25,8 @@ import 'package:flauncher/providers/launcher_state.dart';
 import 'package:flauncher/providers/network_service.dart';
 import 'package:flauncher/providers/settings_service.dart';
 import 'package:flauncher/providers/wallpaper_service.dart';
+import 'package:flauncher/teoc/profiles.dart';
+import 'package:flauncher/teoc/remote_content.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -43,6 +45,8 @@ Future<void> main() async {
   runApp(MultiProvider(
       providers: [
         Provider<FLauncherChannel>.value(value: fLauncherChannel),
+        ChangeNotifierProvider(create: (_) => ProfileService(sharedPreferences)),
+        ChangeNotifierProvider(create: (_) => RemoteContentService(sharedPreferences), lazy: false),
         ChangeNotifierProvider(
             create: (_) => SettingsService(sharedPreferences),
             lazy: false),
